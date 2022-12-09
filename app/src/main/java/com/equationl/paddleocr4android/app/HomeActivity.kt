@@ -1,5 +1,6 @@
 package com.equationl.paddleocr4android.app
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -21,8 +22,12 @@ class HomeActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(view: View?) {
         when(view?.id) {
             R.id.sample_button -> {
+                val intent = Intent(this, SampleActivity::class.java)
+                startActivity(intent)
             }
             R.id.camera_button -> {
+                val intent = Intent(this, CameraActivity::class.java)
+                startActivity(intent)
             }
         }
     }
