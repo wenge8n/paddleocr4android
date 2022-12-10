@@ -1,17 +1,22 @@
 package com.equationl.paddleocr4android.app
 
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
+import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import com.equationl.paddleocr4android.CpuPowerMode
 import com.equationl.paddleocr4android.OCR
 import com.equationl.paddleocr4android.OcrConfig
 import com.equationl.paddleocr4android.app.databinding.ActivitySampleBinding
+import com.equationl.paddleocr4android.bean.OcrResult
 import com.equationl.paddleocr4android.callback.OcrInitCallback
+import com.equationl.paddleocr4android.callback.OcrRunCallback
 
-class SampleActivity : AppCompatActivity() {
+class SampleActivity : AppCompatActivity(), View.OnClickListener {
 
     companion object {
         private val TAG = this::class.simpleName
@@ -19,15 +24,36 @@ class SampleActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySampleBinding
     private lateinit var ocr: OCR
+    private var imgResId: Int = R.drawable.test
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySampleBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        binding.img1Button.setOnClickListener(this)
+        binding.img2Button.setOnClickListener(this)
+        binding.img3Button.setOnClickListener(this)
+        binding.img4Button.setOnClickListener(this)
+        binding.startButton.setOnClickListener(this)
         // binding.resultTextView.movementMethod = ScrollingMovementMethod()
 
         initOCR()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            android.R.id.home -> finish()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 释放
+        ocr.releaseModel()
     }
 
     private fun initOCR() {
@@ -80,5 +106,73 @@ class SampleActivity : AppCompatActivity() {
                 Log.e(TAG, "onFail: 初始化失败", e)
             }
         })
+    }
+
+    private fun startIdentifying() {
+        // 1.同步识别
+        /*val bitmap = BitmapFactory.decodeResource(resources, R.drawable.test2)
+        ocr.runSync(bitmap)
+
+        val bitmap2 = BitmapFactory.decodeResource(resources, R.drawable.test3)
+        ocr.runSync(bitmap2)*/
+
+        // 2.异步识别
+        binding.imageView.setImageResource(imgResId)
+        binding.resultTextView.text = "Start identifying"
+        val bitmap3 = BitmapFactory.decodeResource(resources, imgResId)
+        ocr.run(bitmap3, object : OcrRunCallback {
+            override fun onSuccess(result: OcrResult) {
+                val simpleText = result.simpleText
+                val imgWithBox = result.imgWithBox
+                val inferenceTime = result.inferenceTime
+                val outputRawResult = result.outputRawResult
+
+                var text = "Recognized text=\n$simpleText\nRecognition time=$inferenceTime ms\nMore information=\n"
+
+                val wordLabels = ocr.getWordLabels()
+                outputRawResult.forEachIndexed { index, ocrResultModel ->
+                    // 文字索引（crResultModel.wordIndex）对应的文字可以从字典（wordLabels） 中获取
+                    ocrResultModel.wordIndex.forEach {
+                        Log.i(TAG, "onSuccess: text = ${wordLabels[it]}")
+                    }
+                    // 文字方向 ocrResultModel.clsLabel 可能为 "0" 或 "180"
+                    text += "$index: Character direction：${ocrResultModel.clsLabel}；Text Orientation Confidence：${ocrResultModel.clsConfidence}；Recognition confidence ${ocrResultModel.confidence}；Text index position ${ocrResultModel.wordIndex}；Text position：${ocrResultModel.points}\n"
+                }
+
+                binding.resultTextView.text = text
+                binding.imageView.setImageBitmap(imgWithBox)
+            }
+
+            override fun onFail(e: Throwable) {
+                binding.resultTextView.text = "Failed：$e"
+                Log.e(TAG, "onFail: 识别失败！", e)
+            }
+        })
+    }
+
+    private fun selectImage(resId: Int) {
+        imgResId = resId
+        binding.imageView.setImageResource(resId)
+        binding.resultTextView.text = ""
+    }
+
+    override fun onClick(view: View?) {
+        when(view?.id) {
+            R.id.img1_button -> {
+                selectImage(R.drawable.test)
+            }
+            R.id.img2_button -> {
+                selectImage(R.drawable.test2)
+            }
+            R.id.img3_button -> {
+                selectImage(R.drawable.test3)
+            }
+            R.id.img4_button -> {
+                selectImage(R.drawable.test4)
+            }
+            R.id.start_button -> {
+                startIdentifying()
+            }
+        }
     }
 }
