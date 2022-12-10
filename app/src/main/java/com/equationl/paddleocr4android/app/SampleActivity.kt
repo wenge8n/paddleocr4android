@@ -119,6 +119,7 @@ class SampleActivity : AppCompatActivity(), View.OnClickListener {
         // 2.异步识别
         binding.imageView.setImageResource(imgResId)
         binding.resultTextView.text = "Start identifying"
+        binding.startButton.isEnabled = false
         val bitmap3 = BitmapFactory.decodeResource(resources, imgResId)
         ocr.run(bitmap3, object : OcrRunCallback {
             override fun onSuccess(result: OcrResult) {
@@ -141,11 +142,13 @@ class SampleActivity : AppCompatActivity(), View.OnClickListener {
 
                 binding.resultTextView.text = text
                 binding.imageView.setImageBitmap(imgWithBox)
+                binding.startButton.isEnabled = true
             }
 
             override fun onFail(e: Throwable) {
                 binding.resultTextView.text = "Failed：$e"
                 Log.e(TAG, "onFail: 识别失败！", e)
+                binding.startButton.isEnabled = true
             }
         })
     }
