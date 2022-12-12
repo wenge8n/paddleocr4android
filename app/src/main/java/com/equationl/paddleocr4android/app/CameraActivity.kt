@@ -145,7 +145,8 @@ class CameraActivity : AppCompatActivity() {
         override fun analyze(image: ImageProxy) {
             val bitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
             image.use { bitmap.copyPixelsFromBuffer(image.planes[0].buffer) }
-            listener?.let { it(bitmap) }
+            val rotated = bitmap.rotate(image.imageInfo.rotationDegrees.toFloat())
+            listener?.let { it(rotated) }
             image.close()
         }
     }
