@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.util.Size
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
@@ -61,8 +62,11 @@ class CameraActivity : AppCompatActivity() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
+            val resolution = Size(480, 640)
+
             // Preview
             val preview = Preview.Builder()
+                .setTargetResolution(resolution)
                 .build()
                 .also {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
@@ -70,6 +74,7 @@ class CameraActivity : AppCompatActivity() {
 
             val imageAnalyzer = ImageAnalysis.Builder()
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                .setTargetResolution(resolution)
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, BitmapAnalyzer { bitmap ->
