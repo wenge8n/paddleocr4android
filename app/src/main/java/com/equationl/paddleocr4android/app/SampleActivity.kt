@@ -168,10 +168,10 @@ class SampleActivity : AppCompatActivity(), View.OnClickListener {
                 selectImage(R.drawable.test2)
             }
             R.id.img3_button -> {
-                selectImage(R.drawable.test3)
+                selectImage(R.drawable.test4)
             }
             R.id.img4_button -> {
-                selectImage(R.drawable.test4)
+                selectImage(R.drawable.passport)
             }
             R.id.start_button -> {
                 startIdentifying()
