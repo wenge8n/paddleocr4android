@@ -3,6 +3,7 @@ package com.equationl.paddleocr4android.app
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -21,7 +22,9 @@ import com.equationl.paddleocr4android.CpuPowerMode
 import com.equationl.paddleocr4android.OCR
 import com.equationl.paddleocr4android.OcrConfig
 import com.equationl.paddleocr4android.app.databinding.ActivityCameraBinding
+import com.equationl.paddleocr4android.bean.OcrResult
 import com.equationl.paddleocr4android.callback.OcrInitCallback
+import com.equationl.paddleocr4android.callback.OcrRunCallback
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -34,6 +37,7 @@ class CameraActivity : AppCompatActivity() {
 
     private lateinit var ocr: OCR
     private lateinit var cameraExecutor: ExecutorService
+    private var isOCRRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,7 +110,7 @@ class CameraActivity : AppCompatActivity() {
             }
         })
     }
-    
+
     private fun requestPermissions() {
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -140,18 +144,23 @@ class CameraActivity : AppCompatActivity() {
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, BitmapAnalyzer { bitmap ->
-                        // Crop preview area
-                        val cropHeight = if (bitmap.width < binding.viewFinder.width) {
-                            // If preview area is larger than analysing image
-                            val ratio = bitmap.width.toFloat() / binding.viewFinder.width.toFloat()
-                            binding.viewFinder.height.toFloat() * ratio
-                        } else {
-                            // If preview area is smaller than analysing image
-                            val prc = 100 - (binding.viewFinder.width.toFloat() / (bitmap.width.toFloat() / 100f))
-                            binding.viewFinder.height + ((binding.viewFinder.height.toFloat() / 100f) * prc)
+                        if (!isOCRRunning) {
+                            // Crop preview area
+                            val cropHeight = if (bitmap.width < binding.viewFinder.width) {
+                                // If preview area is larger than analysing image
+                                val ratio = bitmap.width.toFloat() / binding.viewFinder.width.toFloat()
+                                binding.viewFinder.height.toFloat() * ratio
+                            } else {
+                                // If preview area is smaller than analysing image
+                                val prc = 100 - (binding.viewFinder.width.toFloat() / (bitmap.width.toFloat() / 100f))
+                                binding.viewFinder.height + ((binding.viewFinder.height.toFloat() / 100f) * prc)
+                            }
+                            val cropTop = (bitmap.height / 2) - (cropHeight / 2)
+                            val cropped = Bitmap.createBitmap(bitmap, 0, cropTop.toInt(), bitmap.width, cropHeight.toInt())
+
+                            // Run OCR
+                            runOCR(cropped)
                         }
-                        val cropTop = (bitmap.height / 2) - (cropHeight / 2)
-                        var cropped = Bitmap.createBitmap(bitmap, 0, cropTop.toInt(), bitmap.width, cropHeight.toInt())
                     })
                 }
 
@@ -171,6 +180,41 @@ class CameraActivity : AppCompatActivity() {
             }
 
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun runOCR(bitmap: Bitmap) {
+        isOCRRunning = true
+
+        ocr.run(bitmap, object : OcrRunCallback {
+            override fun onSuccess(result: OcrResult) {
+                val simpleText = result.simpleText
+                val imgWithBox = result.imgWithBox
+                val inferenceTime = result.inferenceTime
+                val outputRawResult = result.outputRawResult
+
+                var text = "识别文字=\n$simpleText\n识别时间=$inferenceTime ms\n更多信息=\n"
+
+                val wordLabels = ocr.getWordLabels()
+                outputRawResult.forEachIndexed { index, ocrResultModel ->
+                    // 文字索引（crResultModel.wordIndex）对应的文字可以从字典（wordLabels） 中获取
+                    ocrResultModel.wordIndex.forEach {
+                        Log.i(TAG, "onSuccess: text = ${wordLabels[it]}")
+                    }
+                    // 文字方向 ocrResultModel.clsLabel 可能为 "0" 或 "180"
+                    text += "$index: 文字方向：${ocrResultModel.clsLabel}；文字方向置信度：${ocrResultModel.clsConfidence}；识别置信度 ${ocrResultModel.confidence}；文字索引位置 ${ocrResultModel.wordIndex}；文字位置：${ocrResultModel.points}\n"
+                }
+
+                binding.textView.text = simpleText
+
+                isOCRRunning = false
+            }
+
+            override fun onFail(e: Throwable) {
+                Log.e(TAG, "onFail: 识别失败！", e)
+
+                isOCRRunning = false
+            }
+        })
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
