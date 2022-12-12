@@ -214,6 +214,7 @@ class CameraActivity : AppCompatActivity() {
                     intent.putExtra("mrz", mrz)
                     startActivity(intent)
                     finish()
+                    return
                 } catch (e: Exception) {
                     Log.d(TAG, e.toString())
                 }
