@@ -42,14 +42,6 @@ class CameraActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // Request camera permissions
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
-        }
-
         initOCR()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -103,13 +95,26 @@ class CameraActivity : AppCompatActivity() {
         // 2.异步初始化
         ocr.initModel(config, object : OcrInitCallback {
             override fun onSuccess() {
+                requestPermissions()
                 Log.i(TAG, "onSuccess: 初始化成功")
             }
 
             override fun onFail(e: Throwable) {
+                Toast.makeText(this@CameraActivity, e.message, Toast.LENGTH_SHORT).show()
                 Log.e(TAG, "onFail: 初始化失败", e)
+                finish()
             }
         })
+    }
+    
+    private fun requestPermissions() {
+        // Request camera permissions
+        if (allPermissionsGranted()) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        }
     }
 
     private fun startCamera() {
