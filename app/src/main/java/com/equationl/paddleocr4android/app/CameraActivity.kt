@@ -78,6 +78,18 @@ class CameraActivity : AppCompatActivity() {
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, BitmapAnalyzer { bitmap ->
+                        // Crop preview area
+                        val cropHeight = if (bitmap.width < binding.viewFinder.width) {
+                            // If preview area is larger than analysing image
+                            val ratio = bitmap.width.toFloat() / binding.viewFinder.width.toFloat()
+                            binding.viewFinder.height.toFloat() * ratio
+                        } else {
+                            // If preview area is smaller than analysing image
+                            val prc = 100 - (binding.viewFinder.width.toFloat() / (bitmap.width.toFloat() / 100f))
+                            binding.viewFinder.height + ((binding.viewFinder.height.toFloat() / 100f) * prc)
+                        }
+                        val cropTop = (bitmap.height / 2) - (cropHeight / 2)
+                        var cropped = Bitmap.createBitmap(bitmap, 0, cropTop.toInt(), bitmap.width, cropHeight.toInt())
                     })
                 }
 
