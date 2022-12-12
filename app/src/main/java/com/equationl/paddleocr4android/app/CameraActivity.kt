@@ -1,6 +1,7 @@
 package com.equationl.paddleocr4android.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -25,6 +26,7 @@ import com.equationl.paddleocr4android.app.databinding.ActivityCameraBinding
 import com.equationl.paddleocr4android.bean.OcrResult
 import com.equationl.paddleocr4android.callback.OcrInitCallback
 import com.equationl.paddleocr4android.callback.OcrRunCallback
+import java.net.URLEncoder
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -206,6 +208,16 @@ class CameraActivity : AppCompatActivity() {
 
                 binding.textView.text = simpleText
 
+                try {
+                    val mrz = parseMRZ(simpleText)
+                    val intent = Intent(this@CameraActivity, ResultActivity::class.java)
+                    intent.putExtra("mrz", mrz)
+                    startActivity(intent)
+                    finish()
+                } catch (e: Exception) {
+                    Log.d(TAG, e.toString())
+                }
+
                 isOCRRunning = false
             }
 
@@ -215,6 +227,54 @@ class CameraActivity : AppCompatActivity() {
                 isOCRRunning = false
             }
         })
+    }
+
+    private fun parseMRZ(text: String): String {
+        var result = text
+            .replace(Regex("^[^PIACV]*"), "") // Remove everything before P, I, A or C
+            .replace(Regex("[ \\t\\r]+"), "") // Remove any white space
+            .replace(Regex("\\n+"), "\n") // Remove extra new lines
+            .replace("«", "<")
+            .replace("<c<", "<<<")
+            .replace("<e<", "<<<")
+            .replace("<E<", "<<<") // Good idea? Maybe not.
+            .replace("<K<", "<<<") // Good idea? Maybe not.
+            .replace("<S<", "<<<") // Good idea? Maybe not.
+            .replace("<C<", "<<<") // Good idea? Maybe not.
+            .replace("<¢<", "<<<")
+            .replace("<(<", "<<<")
+            .replace("<{<", "<<<")
+            .replace("<[<", "<<<")
+            .replace(Regex("^P[KC]"), "P<")
+            .replace(Regex("[^A-Z0-9<\\n]"), "") // Remove any other char
+            .trim()
+
+        if (result.contains("<") && (
+                    result.startsWith("P") ||
+                            result.startsWith("I") ||
+                            result.startsWith("A") ||
+                            result.startsWith("C") ||
+                            result.startsWith("V"))
+        ) {
+            when (result.filter{ it == '\n' }.count()) {
+                1 -> {
+                    if (result.length > 89) {
+                        result = result.slice(IntRange(0, 88))
+                    }
+                }
+                2 -> {
+                    if (result.length > 92) {
+                        result = result.slice(IntRange(0, 91))
+                    }
+                }
+                else -> throw IllegalArgumentException("Invalid MRZ string. Wrong number of lines.")
+            }
+        } else {
+            Log.d(TAG, "Error = [${URLEncoder.encode(result, "UTF-8").replace("%3C", "<").replace("%0A", "↩")}]")
+            throw IllegalArgumentException("Invalid MRZ string. No '<' or 'P', 'I', 'A', 'C', 'V' detected.")
+        }
+
+        return result
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {

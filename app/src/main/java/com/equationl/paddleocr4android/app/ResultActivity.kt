@@ -15,6 +15,9 @@ class ResultActivity : AppCompatActivity() {
         setContentView(viewBinding.root)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        val mrz = intent.getStringExtra("mrz")
+        viewBinding.textView.text = mrz
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
