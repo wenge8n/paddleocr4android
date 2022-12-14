@@ -63,11 +63,11 @@ class SampleActivity : AppCompatActivity(), View.OnClickListener {
 
         val config = OcrConfig()
 
-        config.modelPath = "models/ch_PP-OCRv2" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
+        config.modelPath = "models/en_PP-OCRv3" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
         //config.modelPath = "/sdcard/Android/data/com.equationl.paddleocr4android.app/files/models" // 使用 "/" 表示手机储存路径，测试时请将下载的三个模型放置于该目录下
-        config.clsModelFilename = "cls.nb" // cls 模型文件名
-        config.detModelFilename = "det_db.nb" // det 模型文件名
-        config.recModelFilename = "rec_crnn.nb" // rec 模型文件名
+        config.clsModelFilename = "ch_ppocr_mobile_v2.0_cls_infer_opt.nb" // cls 模型文件名
+        config.detModelFilename = "en_PP-OCRv3_det_slim_infer.nb" // det 模型文件名
+        config.recModelFilename = "en_PP-OCRv3_rec_slim_infer.nb" // rec 模型文件名
 
         // 运行全部模型
         // 请根据需要配置，三项全开识别率最高；如果只开识别几乎无法正确识别，至少需要搭配检测或分类其中之一
@@ -75,6 +75,8 @@ class SampleActivity : AppCompatActivity(), View.OnClickListener {
         config.isRunDet = true
         config.isRunCls = true
         config.isRunRec = true
+
+        config.isUseOpencl = true
 
         // 使用所有核心运行
         config.cpuPowerMode = CpuPowerMode.LITE_POWER_FULL
